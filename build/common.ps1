@@ -13,8 +13,13 @@ $Artifacts = Join-Path $NuGetClientRoot artifacts
 $Nupkgs = Join-Path $Artifacts nupkgs
 $ReleaseNupkgs = Join-Path $Artifacts ReleaseNupkgs
 $ConfigureJson = Join-Path $Artifacts configure.json
+<<<<<<< HEAD
 $VsWhereExe = "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 $NuGetExeVersion = 'v4.8.1'
+=======
+$NuGetExeVersion = 'v4.9.1'
+
+>>>>>>> Fix issues, update build runtime
 $DotNetExe = Join-Path $CLIRoot 'dotnet.exe'
 $NuGetExe = Join-Path $NuGetClientRoot '.nuget\nuget.exe'
 $XunitConsole = Join-Path $NuGetClientRoot 'packages\xunit.runner.console.2.1.0\tools\xunit.console.exe'
@@ -188,14 +193,20 @@ Function Install-NuGet {
     & $NuGetExe locals all -list -verbosity detailed
 }
 
-Function Install-DotnetCLICommon {
+Function Install-DotnetCLI {
+    [CmdletBinding()]
     param(
-        [bool]$Force,
-        [hashtable]$cli
+        [switch]$Force
     )
     $MSBuildExe = Get-MSBuildExe
-    $CliTargetBranch = & $msbuildExe $NuGetClientRoot\build\config.props /v:m /nologo /t:GetCliTargetBranch1
+    $CliTargetBranch = & $msbuildExe $NuGetClientRoot\build\config.props /v:m /nologo /t:GetCliTargetBranch
 
+    $cli = @{
+        Root = $CLIRoot
+        Version = 'latest'
+        Channel = $CliTargetBranch.Trim()
+    }
+    
     $DotNetExe = Join-Path $cli.Root 'dotnet.exe';
 
     if ([Environment]::Is64BitOperatingSystem) {
@@ -227,27 +238,7 @@ Function Install-DotnetCLICommon {
     & $DotNetExe --info
 }
 
-Function Install-DotnetCLI {
-    [CmdletBinding()]
-    param(
-        [switch]$Force
-    )
-
-    $msbuildExe = 'C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\bin\msbuild.exe'
-    $CliTargetBranch = & $msbuildExe $NuGetClientRoot\build\config.props /v:m /nologo /t:GetCliTargetBranch1
-
-    $cli = @{
-        Root = $CLIRoot
-        Version = '2.1.500'
-        Channel = 'LTS'
-        # Version = 'latest'
-        # Channel = $CliTargetBranch.Trim()
-    }
-    
-    Install-DotnetCLICommon $Force $cli
-}
-
-Function Get-LatestVisualStudioRoot() {
+Function Get-LatestVisualStudioRoot {
     # First try to use vswhere to find the latest version of Visual Studio.
     if (Test-Path $VsWhereExe) {
         $installationPath = & $VsWhereExe -latest -prerelease -property installationPath
