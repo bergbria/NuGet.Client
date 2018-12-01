@@ -32,6 +32,8 @@ Param (
     [switch]$CI,
     [Alias('s15')]
     [switch]$SkipVS15,
+    [Alias('s16')]
+    [switch]$SkipVS16,
     [switch]$RunTest
 )
 
@@ -79,9 +81,11 @@ Function New-BuildToolset {
         $ToolsetObject = @{
             VisualStudioInstallDir = [System.IO.Path]::GetFullPath((Join-Path $CommonToolsValue '..\IDE'))
         }
+        Warning-Log "Here!!"
     }
 
     if (-not $ToolsetObject) {
+        Warning-LOg "IN ToolsetObject"
         $VisualStudioRegistryKey = "HKCU:\SOFTWARE\Microsoft\VisualStudio\${ToolsetVersion}.0_Config"
         if (Test-Path $VisualStudioRegistryKey) {
             Verbose-Log "Retrieving Visual Studio installation path from registry '$VisualStudioRegistryKey'"
@@ -92,22 +96,14 @@ Function New-BuildToolset {
     }
 
     if (-not $ToolsetObject -and $ToolsetVersion -gt 14) {
-        $VisualStudioInstallRootDir = Get-LatestVisualStudioRoot
+        Verbose-Log "are we here"
+
+        $VisualStudioInstallRootDir = Get-LatestVisualStudioRoot #Should we really be getting this here? Look for the actual toolset version
 
         if ($VisualStudioInstallRootDir) {
             Verbose-Log "Using willow instance '$VisualStudioInstallRootDir' installation path"
             $ToolsetObject = @{
                 VisualStudioInstallDir = [System.IO.Path]::GetFullPath((Join-Path $VisualStudioInstallRootDir Common7\IDE\))
-            }
-        }
-    }
-
-    if (-not $ToolsetObject) {
-        $DefaultInstallDir = Join-Path $env:ProgramFiles "Microsoft Visual Studio ${ToolsetVersion}.0\Common7\IDE\"
-        if (Test-Path $DefaultInstallDir) {
-            Verbose-Log "Using default location of Visual Studio installation path"
-            $ToolsetObject = @{
-                VisualStudioInstallDir = $DefaultInstallDir
             }
         }
     }
@@ -147,6 +143,27 @@ Invoke-BuildStep 'Validating VS15 toolset installation' {
         }
     }
 } -skip:($SkipVS15) -ev +BuildErrors
+
+Invoke-BuildStep 'Validating VS16 toolset installation' {
+    $vs16 = New-BuildToolset 16
+    if ($vs16) {
+        $ConfigureObject.Toolsets.Add('vs16', $vs16)
+        $script:MSBuildExe = Get-MSBuildExe 16
+
+        # Hack VSSDK path
+        $VSToolsPath = Join-Path $vs16.VisualStudioInstallDir 'Microsoft\VisualStudio\v16.0'
+
+        $Targets = Join-Path $VSToolsPath 'VSSDK\Microsoft.VsSDK.targets'
+
+        if (-not (Test-Path $Targets)) {
+            Warning-Log "VSSDK is not found at default location '$VSToolsPath'. Attempting to override."
+            # Attempting to fix VS SDK path for VS16 willow install builds
+            # as MSBUILD failes to resolve it correctly
+            $VSToolsPath = Join-Path $vs16.VisualStudioInstallDir '..\..\MSBuild\Microsoft\VisualStudio\v16.0' -Resolve
+            $ConfigureObject.Add('EnvVars', @{ VSToolsPath = $VSToolsPath })
+        }
+    }
+} -skip:($SkipVS16) -ev +BuildErrors
 
 if ($MSBuildExe) {
     $MSBuildExe = [System.IO.Path]::GetFullPath($MSBuildExe)

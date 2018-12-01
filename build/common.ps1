@@ -317,15 +317,22 @@ Function Get-LatestVisualStudioRoot() {
 
 Function Get-MSBuildRoot {
     param(
+        [ValidateSet(15,16)]
+        [int]$MSBuildVersion = 16,
         [switch]$Default
     )
-    # Willow install workaround
+    Warning-Log "Get-MSBuildRoot $MSBuildVersion $Default"
     if (-not $Default) {
         # Find version 15.0 or newer
-        if (Test-Path Env:\VS150COMNTOOLS) {
-            # If VS "15" is installed get msbuild from VS install path
-            $MSBuildRoot = Join-Path $env:VS150COMNTOOLS '..\..\MSBuild'
+        $CommonToolsVar = "Env:VS${MSBuildVersion}0COMNTOOLS"
+        
+        if (Test-Path $CommonToolsVar) {
+            $CommonToolsValue = gci $CommonToolsVar | select -expand value -ea Ignore
+            # The trick here is that the env var is only set in the VS dev cmd prompt. If VS is installed get msbuild from VS install path
+            $MSBuildRoot = Join-Path $CommonToolsValue '..\..\MSBuild' -Resolve
+            
         } else {
+            Warning-Log "In the latest case. Should make take care if it's wrong"
             $VisualStudioRoot = Get-LatestVisualStudioRoot
             if ($VisualStudioRoot -and (Test-Path $VisualStudioRoot)) {
                 $MSBuildRoot = Join-Path $VisualStudioRoot 'MSBuild'
@@ -338,23 +345,23 @@ Function Get-MSBuildRoot {
         # Assume msbuild is installed at default location
         $MSBuildRoot = Join-Path ${env:ProgramFiles(x86)} 'MSBuild'
     }
-
     $MSBuildRoot
 }
 
 Function Get-MSBuildExe {
     param(
-        [ValidateSet(15)]
+        [ValidateSet(15, 16)]
         [int]$MSBuildVersion
     )
+    Warning-Log "Get-MSBUILDEXE $MSBuildVersion"
     # Get the highest msbuild version if version was not specified
     if (-not $MSBuildVersion) {
-        return Get-MSBuildExe 15
+        return Get-MSBuildExe 16
     }
 
-    $MSBuildRoot = Get-MSBuildRoot
-    $MSBuildExe = Join-Path $MSBuildRoot 'Current\bin\msbuild.exe'
+    $MSBuildRoot = Get-MSBuildRoot $MSBuildVersion
 
+    $MSBuildExe = Join-Path $MSBuildRoot 'Current\bin\msbuild.exe'
     if (-not (Test-Path $MSBuildExe)) {
         $MSBuildExe = Join-Path $MSBuildRoot "${MSBuildVersion}.0\bin\msbuild.exe"
     }

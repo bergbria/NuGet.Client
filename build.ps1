@@ -46,7 +46,7 @@ To troubleshoot build issues
 param (
     [ValidateSet('debug', 'release')]
     [Alias('c')]
-    [string]$Configuration,
+    [string]$MSbuConfiguration,
     [ValidatePattern('^(beta|final|preview|rc|release|rtm|xprivate|zlocal)([0-9]*)$')]
     [Alias('l')]
     [string]$ReleaseLabel = 'zlocal',
@@ -87,10 +87,10 @@ Trace-Log "Build #$BuildNumber started at $startTime"
 Test-BuildEnvironment -CI:$CI
 
 # Adjust version skipping if only one version installed - if VS15 is not installed, no need to specify SkipVS15
-if (-not $SkipVS15 -and -not $VS15Installed) {
-    Warning-Log "VS15 build is requested but it appears not to be installed."
-    $SkipVS15 = $True
-}
+# if (-not $SkipVS15 -and -not $VS15Installed) {
+#     Warning-Log "VS15 build is requested but it appears not to be installed."
+#     $SkipVS15 = $True
+# }
 
 $BuildErrors = @()
 
