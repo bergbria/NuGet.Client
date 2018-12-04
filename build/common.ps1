@@ -6,7 +6,6 @@ $DefaultMSBuildVersion = 15
 # The pack version can be inferred from the .nuspec files on disk. This is only necessary as long
 # as the following issue is open: https://github.com/NuGet/Home/issues/3530
 $PackageReleaseVersion = "4.6.0"
-$NuGetExeVersion = 'v4.9.1'
 
 $NuGetClientRoot = Split-Path -Path $PSScriptRoot -Parent
 $CLIRoot = Join-Path $NuGetClientRoot cli
@@ -181,7 +180,7 @@ Function Install-NuGet {
     if ($Force -or -not (Test-Path $NuGetExe)) {
         Trace-Log 'Downloading nuget.exe'
 
-        wget https://dist.nuget.org/win-x86-commandline/$NuGetExeVersion/nuget.exe -OutFile $NuGetExe
+        wget https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile $NuGetExe
     }
 
     # Display nuget info
