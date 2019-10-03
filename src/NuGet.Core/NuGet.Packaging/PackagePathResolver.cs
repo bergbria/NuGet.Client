@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -16,6 +16,7 @@ namespace NuGet.Packaging
         private readonly string _rootDirectory;
 
         public bool UseSideBySidePaths { get; }
+        private readonly bool _alwaysNormalizeVersions;
 
         public PackagePathResolver(string rootDirectory, bool useSideBySidePaths = true)
         {
@@ -27,12 +28,10 @@ namespace NuGet.Packaging
             }
             _rootDirectory = rootDirectory;
             UseSideBySidePaths = useSideBySidePaths;
+            _alwaysNormalizeVersions = "1".Equals(Environment.GetEnvironmentVariable("NUGET_ALWAYS_NORMALIZE_VERSIONED_INSTALL_DIRS"));
         }
 
-        protected internal string Root
-        {
-            get { return _rootDirectory; }
-        }
+        protected internal string Root => _rootDirectory;
 
         public virtual string GetPackageDirectoryName(PackageIdentity packageIdentity)
         {
@@ -90,8 +89,8 @@ namespace NuGet.Packaging
 
         private string GetVersion(PackageIdentity identity)
         {
-            // We use original case for the version (no normalization).
-            return identity.Version.ToString();
+            // We use original case for the version (no normalization) unless the user specifically requested otherwise.
+            return _alwaysNormalizeVersions ? identity.Version.ToNormalizedString() : identity.Version.ToString();
         }
 
         private StringBuilder GetPathBase(PackageIdentity packageIdentity)

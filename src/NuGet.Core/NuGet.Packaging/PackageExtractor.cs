@@ -318,6 +318,8 @@ namespace NuGet.Packaging
 
                 var packageFiles = await packageReader.GetPackageFilesAsync(packageSaveMode, token);
                 var packageFileExtractor = new PackageFileExtractor(packageFiles, packageExtractionContext.XmlDocFileSaveMode);
+                Console.WriteLine($"About to extract to {packageDirectory}");
+                Console.ReadLine();
 
                 filesAdded.AddRange(await packageReader.CopyFilesAsync(
                     packageDirectory,
@@ -408,9 +410,12 @@ namespace NuGet.Packaging
 
                 // Acquire the lock on a nukpg before we extract it to prevent the race condition when multiple
                 // processes are extracting to the same destination simultaneously
+                Console.WriteLine($"About to lock on {targetNupkg}");
                 return await ConcurrencyUtilities.ExecuteWithFileLockedAsync(targetNupkg,
                     action: async cancellationToken =>
                     {
+                        Console.WriteLine($"Acquied lock on {targetNupkg}. Press enter to continue");
+                        Console.ReadLine();
                         // If this is the first process trying to install the target nupkg, go ahead
                         // After this process successfully installs the package, all other processes
                         // waiting on this lock don't need to install it again.
